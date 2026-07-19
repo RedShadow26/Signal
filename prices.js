@@ -3,6 +3,7 @@ const express = require('express');
 const axios = require('axios');
 
 const app = express();
+const AV_KEY = process.env.ALPHA_VANTAGE_KEY;
 
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -13,6 +14,11 @@ const cache = {};
 const CACHE_TIME = 60000;
 const newsCache = {};
 const NEWS_CACHE_TIME = 300000;
+
+// ── Root ──────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.json({ status: 'SIGNAL Price Server running', version: '1.0' });
+});
 
 // ── Live Price ────────────────────────────────────
 app.get('/price/:ticker', async (req, res) => {
@@ -44,7 +50,7 @@ app.get('/price/:ticker', async (req, res) => {
   }
 });
 
-// ── News via Yahoo Finance ─────────────────────────
+// ── News ──────────────────────────────────────────
 app.get('/news/:ticker', async (req, res) => {
   const ticker = req.params.ticker.toUpperCase();
   const now = Date.now();
@@ -61,11 +67,10 @@ app.get('/news/:ticker', async (req, res) => {
 
     const feed = r.data.news || [];
     const news = feed.slice(0, 5).map(item => ({
-      title:     item.title,
-      source:    item.publisher,
-      url:       item.link,
-      time:      item.providerPublishTime,
-      sentiment: null
+      title:  item.title,
+      source: item.publisher,
+      url:    item.link,
+      time:   item.providerPublishTime,
     }));
 
     const data = { news };
@@ -73,9 +78,9 @@ app.get('/news/:ticker', async (req, res) => {
     res.json(data);
 
   } catch (err) {
-    console.error(err.message);
     res.json({ news: [] });
   }
 });
 
-app.listen(3001, () => console.log('Server on http://localhost:3001'));
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`Server on port ${PORT}`));
