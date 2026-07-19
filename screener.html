@@ -238,7 +238,7 @@ async function load(){
 
 async function fetchPrice(ticker){
   try{
-    const r=await fetch(`http://localhost:3001/price/${ticker}`);
+    const r=await fetch(`https://signal-production-d8c7.up.railway.app/price/${ticker}`);
     const d=await r.json();
     if(d.price){
       prices[ticker]=d;
@@ -428,7 +428,7 @@ async function loadNews(ticker){
   if(!el)return;
 
   try{
-    const r=await fetch(`http://localhost:3001/news/${ticker}`);
+    const r=await fetch(`https://signal-production-d8c7.up.railway.app/news/${ticker}`);
     const d=await r.json();
 
     if(!d.news?.length){
