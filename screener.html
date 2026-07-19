@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGNAL</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0D0D0D;
+  --s1:#141414;
+  --s2:#1A1A1A;
+  --s3:#222222;
+  --b1:#2A2A2A;
+  --b2:#333333;
+  --t1:#E8E8E8;
+  --t2:#888888;
+  --t3:#555555;
+  --gr:#22C55E;
+  --re:#EF4444;
+  --ye:#EAB308;
+  --bl:#3B82F6;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',sans-serif;
+}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);font-size:13px;min-height:100vh}
+
+header{
+  height:44px;background:var(--s1);border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;position:sticky;top:0;z-index:50
+}
+.hlogo{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--t1);letter-spacing:.08em}
+.hlogo span{color:var(--t3);margin-left:8px;font-size:11px;font-weight:400}
+.hmeta{display:flex;gap:16px;align-items:center;font-family:var(--mono);font-size:11px;color:var(--t3)}
+.hdot{width:5px;height:5px;border-radius:50%;background:var(--gr);margin-right:4px;animation:p 2s infinite;display:inline-block}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}
+
+.wrap{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 44px)}
+.left{border-right:1px solid var(--b1)}
+.right{background:var(--s1);position:sticky;top:44px;height:calc(100vh - 44px);overflow-y:auto}
+
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--b1)}
+.kpi{padding:12px 16px;border-right:1px solid var(--b1)}
+.kpi:last-child{border-right:none}
+.kpi-l{font-family:var(--mono);font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.kpi-v{font-family:var(--mono);font-size:20px;font-weight:500}
+.kpi-v.g{color:var(--gr)}
+.kpi-v.y{color:var(--ye)}
+.kpi-v.r{color:var(--re)}
+
+.bar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--b1);background:var(--s1)}
+.search{background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:5px 10px;font-size:12px;color:var(--t1);width:160px;font-family:var(--sans);outline:none}
+.search:focus{border-color:var(--bl)}
+.search::placeholder{color:var(--t3)}
+.pills{display:flex;gap:4px}
+.pl{font-size:11px;padding:4px 10px;border-radius:3px;cursor:pointer;border:1px solid var(--b2);background:transparent;color:var(--t3);font-family:var(--sans);transition:all .12s}
+.pl.on{background:var(--bl);color:#fff;border-color:var(--bl)}
+.pl:hover:not(.on){color:var(--t1);border-color:var(--t3)}
+.sel{margin-left:auto;background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:5px 8px;font-size:11px;color:var(--t2);font-family:var(--sans);outline:none;cursor:pointer}
+
+table{width:100%;border-collapse:collapse}
+thead{background:var(--s2);position:sticky;top:85px;z-index:10}
+th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);padding:9px 14px;text-align:left;border-bottom:1px solid var(--b1);font-weight:400;white-space:nowrap}
+th.r{text-align:right}
+tbody tr{border-bottom:1px solid var(--b1);cursor:pointer;transition:background .08s}
+tbody tr:hover{background:var(--s2)}
+tbody tr.on{background:rgba(59,130,246,.06);border-left:2px solid var(--bl)}
+tbody tr.on td:first-child{padding-left:12px}
+td{padding:10px 14px;vertical-align:middle}
+td.r{text-align:right}
+
+.rn{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.tc{display:flex;align-items:center;gap:8px}
+.chip{font-family:var(--mono);font-size:10px;font-weight:500;background:rgba(59,130,246,.12);color:#93C5FD;padding:2px 7px;border-radius:3px;min-width:44px;text-align:center;border:1px solid rgba(59,130,246,.2)}
+.cn{font-size:12px;font-weight:500;color:var(--t1)}
+.cs{font-size:11px;color:var(--t3);margin-top:1px}
+
+.sw{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.sn{font-family:var(--mono);font-size:13px;font-weight:500;min-width:24px;text-align:right}
+.st{width:44px;height:3px;background:var(--b2);border-radius:2px;overflow:hidden}
+.sf{height:100%;border-radius:2px}
+
+.bdg{font-family:var(--mono);font-size:9px;font-weight:500;padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:.05em}
+.bdg.sp{background:rgba(34,197,94,.1);color:#4ADE80;border:1px solid rgba(34,197,94,.2)}
+.bdg.pa{background:rgba(234,179,8,.1);color:#FDE047;border:1px solid rgba(234,179,8,.2)}
+.bdg.wl{background:rgba(249,115,22,.1);color:#FB923C;border:1px solid rgba(249,115,22,.2)}
+.bdg.fa{background:rgba(239,68,68,.1);color:#FCA5A5;border:1px solid rgba(239,68,68,.2)}
+
+.vbdg{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;white-space:nowrap;border:1px solid}
+.vbdg.uv{background:rgba(34,197,94,.08);color:#4ADE80;border-color:rgba(34,197,94,.2)}
+.vbdg.fv{background:rgba(234,179,8,.08);color:#FDE047;border-color:rgba(234,179,8,.2)}
+.vbdg.ov{background:rgba(239,68,68,.08);color:#FCA5A5;border-color:rgba(239,68,68,.2)}
+
+.up{font-family:var(--mono);font-size:11px;font-weight:500}
+.up.pos{color:var(--gr)}
+.up.neg{color:var(--re)}
+
+.mfs{display:flex;gap:2px}
+.mf{font-family:var(--mono);font-size:10px;padding:1px 4px;border-radius:2px;background:var(--s3);color:var(--t3)}
+
+.empty-side{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--t3);text-align:center;padding:32px}
+.empty-side p{font-size:12px;line-height:1.5;margin-top:8px}
+
+.sh{padding:16px 18px;border-bottom:1px solid var(--b1)}
+.st-tick{font-family:var(--mono);font-size:18px;font-weight:500;color:var(--bl)}
+.st-name{font-size:12px;color:var(--t3);margin-top:2px}
+.sc-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.sc-big{font-family:var(--mono);font-size:32px;font-weight:500;line-height:1}
+.sc-badges{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+
+.ss{padding:14px 18px;border-bottom:1px solid var(--b1)}
+.ss-t{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px}
+
+.fbr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.fbr:last-child{margin-bottom:0}
+.fbl{font-size:11px;color:var(--t2);flex:1}
+.fbt{width:64px;height:4px;background:var(--b2);border-radius:2px;overflow:hidden;margin:0 8px}
+.fbf{height:100%;border-radius:2px}
+.fbn{font-family:var(--mono);font-size:10px;font-weight:500;min-width:28px;text-align:right}
+
+.aic{background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:10px;margin-bottom:6px}
+.aic:last-child{margin-bottom:0}
+.aih{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.ail{font-family:var(--mono);font-size:10px;color:var(--bl);text-transform:uppercase;letter-spacing:.05em}
+.aip{background:rgba(59,130,246,.12);color:#93C5FD;font-family:var(--mono);font-size:10px;padding:1px 5px;border-radius:8px}
+.ait{font-size:11px;color:var(--t3);line-height:1.5}
+
+.vc{background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:10px}
+.vcc{font-family:var(--mono);font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.vcv{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--t1)}
+.vg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.vh{text-align:center;padding:12px 0 8px}
+.vhn{font-family:var(--mono);font-size:28px;font-weight:500}
+.vhl{font-size:10px;color:var(--t3);margin-top:2px}
+
+.cw{padding:14px 18px}
+.ct{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px}
+.cc{position:relative;height:160px}
+
+.ldr{text-align:center;padding:48px;color:var(--t3);font-size:12px}
+.price-cell{font-family:var(--mono);font-size:12px;font-weight:500;text-align:right}
+.price-chg{font-family:var(--mono);font-size:10px;margin-top:1px;text-align:right}
+.price-chg.pos{color:var(--gr)}
+.price-chg.neg{color:var(--re)}
+.price-loading{color:var(--t3);font-style:italic;font-size:11px}
+.live-price-big{font-family:var(--mono);font-size:22px;font-weight:500}
+.live-chg-big{font-family:var(--mono);font-size:12px;margin-top:2px}
+.news-item{padding:10px 0;border-bottom:1px solid var(--b1)}
+.news-item:last-child{border-bottom:none}
+.news-title{font-size:12px;color:var(--t1);line-height:1.4;margin-bottom:4px;text-decoration:none;display:block}
+.news-title:hover{color:var(--bl)}
+.news-meta{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:var(--t3)}
+.news-source{color:var(--bl)}
+.news-time{color:var(--t3)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hlogo">SIGNAL<span>stock screener</span></div>
+  <div class="hmeta">
+    <span><span class="hdot"></span>live</span>
+    <span id="ts"></span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="left">
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-l">Analysed</div><div class="kpi-v" id="k0">–</div></div>
+      <div class="kpi"><div class="kpi-l">Strong Pass</div><div class="kpi-v g" id="k1">–</div></div>
+      <div class="kpi"><div class="kpi-l">Pass</div><div class="kpi-v y" id="k2">–</div></div>
+      <div class="kpi"><div class="kpi-l">Watchlist</div><div class="kpi-v" style="color:#FB923C" id="k3">–</div></div>
+      <div class="kpi"><div class="kpi-l">Undervalued</div><div class="kpi-v g" id="k4">–</div></div>
+    </div>
+    <div class="bar">
+      <input class="search" type="text" placeholder="Search..." id="q" oninput="draw()">
+      <div class="pills">
+        <button class="pl on" onclick="filt('all',this)">All</button>
+        <button class="pl" onclick="filt('STRONG PASS',this)">Strong Pass</button>
+        <button class="pl" onclick="filt('PASS',this)">Pass</button>
+        <button class="pl" onclick="filt('WATCHLIST',this)">Watchlist</button>
+        <button class="pl" onclick="filt('FAIL',this)">Fail</button>
+      </div>
+      <select class="sel" id="srt" onchange="draw()">
+        <option value="score">Score ↓</option>
+        <option value="upside">Upside ↓</option>
+        <option value="az">A → Z</option>
+      </select>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:28px">#</th>
+          <th>Company</th>
+          <th class="r">Filters</th>
+          <th class="r">Score</th>
+          <th class="r">Result</th>
+          <th class="r">Price</th>
+          <th class="r">Valuation</th>
+          <th class="r">Upside</th>
+        </tr>
+      </thead>
+      <tbody id="tb"><tr><td colspan="7" class="ldr">Loading...</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="right" id="rp">
+    <div class="empty-side">
+      <div style="font-family:var(--mono);font-size:24px;color:var(--b2)">—</div>
+      <p>Select a row to view the full analysis</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://hzmcsgpgxbnlnbitfknl.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bWNzZ3BneGJubG5iaXRma25sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1NjQ1MTAsImV4cCI6MjA5OTE0MDUxMH0.by4k1WMZAqaBIf_1BlmIFPjyD1zKXJXUDyqmcHRwY7o';
+const {createClient}=supabase;
+const db=createClient(SB_URL,SB_KEY);
+
+let all=[],sel=null,cf='all',chart=null,prices={};
+
+function sc(v){if(v>=80)return'#22C55E';if(v>=65)return'#EAB308';if(v>=50)return'#F97316';return'#EF4444'}
+function bc(pf){if(pf==='STRONG PASS')return'sp';if(pf==='PASS')return'pa';if(pf==='WATCHLIST')return'wl';return'fa'}
+function vc(l){if(!l)return'fv';const v=l.toLowerCase();if(v.includes('under'))return'uv';if(v.includes('fairly'))return'fv';return'ov'}
+
+async function load(){
+  const{data,error}=await db.from('stock_scores').select('*').order('score_total',{ascending:false});
+  if(error||!data?.length){document.getElementById('tb').innerHTML='<tr><td colspan="8" class="ldr">No data. Run scanner_v2.js</td></tr>';return}
+  all=data;draw();kpis(all);
+  fetchAllPrices(data.map(s=>s.ticker));
+}
+
+async function fetchPrice(ticker){
+  try{
+    const r=await fetch(`http://localhost:3001/price/${ticker}`);
+    const d=await r.json();
+    if(d.price){
+      prices[ticker]=d;
+      updatePriceCell(ticker,d);
+      if(sel===ticker) updateSidePrice(d);
+    }
+  }catch(e){}
+}
+
+function fetchAllPrices(tickers){
+  tickers.forEach((t,i)=>setTimeout(()=>fetchPrice(t),i*2000));
+}
+
+function updatePriceCell(ticker,d){
+  const el=document.getElementById(`price-${ticker}`);
+  if(!el)return;
+  const chgPct=parseFloat(d.changePercent);
+  const cls=chgPct>=0?'pos':'neg';
+  const arrow=chgPct>=0?'▲':'▼';
+  el.innerHTML=`<div class="price-cell">$${d.price}</div><div class="price-chg ${cls}">${arrow} ${Math.abs(chgPct).toFixed(2)}%</div>`;
+}
+
+function updateSidePrice(d){
+  const el=document.getElementById('side-live-price');
+  if(!el)return;
+  const chgPct=parseFloat(d.changePercent);
+  const cls=chgPct>=0?'pos':'neg';
+  const arrow=chgPct>=0?'▲':'▼';
+  el.innerHTML=`
+    <div class="live-price-big">$${d.price}</div>
+    <div class="live-chg-big ${cls}">${arrow} $${Math.abs(parseFloat(d.change)).toFixed(2)} (${Math.abs(chgPct).toFixed(2)}%)</div>`;
+}
+
+function kpis(d){
+  document.getElementById('k0').textContent=d.length;
+  document.getElementById('k1').textContent=d.filter(s=>s.pass_fail==='STRONG PASS').length;
+  document.getElementById('k2').textContent=d.filter(s=>s.pass_fail==='PASS').length;
+  document.getElementById('k3').textContent=d.filter(s=>s.pass_fail==='WATCHLIST').length;
+  document.getElementById('k4').textContent=d.filter(s=>s.upside_percent>0).length;
+}
+
+function filt(f,btn){cf=f;document.querySelectorAll('.pl').forEach(p=>p.classList.remove('on'));btn.classList.add('on');draw()}
+
+function draw(){
+  const q=document.getElementById('q').value.toLowerCase();
+  const srt=document.getElementById('srt').value;
+  let d=cf==='all'?[...all]:all.filter(s=>s.pass_fail===cf);
+  if(q)d=d.filter(s=>s.ticker.toLowerCase().includes(q)||s.company_name?.toLowerCase().includes(q));
+  if(srt==='score')d.sort((a,b)=>b.score_total-a.score_total);
+  else if(srt==='upside')d.sort((a,b)=>(b.upside_percent||-999)-(a.upside_percent||-999));
+  else d.sort((a,b)=>a.ticker.localeCompare(b.ticker));
+
+  const tb=document.getElementById('tb');
+  if(!d.length){tb.innerHTML='<tr><td colspan="7" class="ldr">No results</td></tr>';return}
+
+  tb.innerHTML=d.map((s,i)=>{
+    const c=sc(s.score_total);
+    const up=s.upside_percent;
+    const us=up!=null?`${up>0?'+':''}${up}%`:'–';
+    const uc=up>0?'pos':'neg';
+    const act=s.ticker===sel?'on':'';
+    return`<tr class="${act}" onclick="pick('${s.ticker}')">
+      <td class="r"><span class="rn">${i+1}</span></td>
+      <td><div class="tc"><span class="chip">${s.ticker}</span><div><div class="cn">${s.company_name}</div><div class="cs">${s.sector||'–'}</div></div></div></td>
+      <td class="r"><div class="mfs">
+        <span class="mf" title="Quality">${s.score_quality??'–'}</span>
+        <span class="mf" title="Financial">${s.score_financial??'–'}</span>
+        <span class="mf" title="Future">${s.score_future??'–'}</span>
+        <span class="mf" title="Mgmt">${s.score_management??'–'}</span>
+        <span class="mf" title="Risk">${s.score_risk??'–'}</span>
+      </div></td>
+      <td class="r"><div class="sw"><span class="sn" style="color:${c}">${s.score_total}</span><div class="st"><div class="sf" style="width:${s.score_total}%;background:${c}"></div></div></div></td>
+      <td class="r"><span class="bdg ${bc(s.pass_fail)}">${s.pass_fail}</span></td>
+      <td class="r" id="price-${s.ticker}"><span class="price-loading">loading...</span></td>
+      <td class="r"><span class="vbdg ${vc(s.valuation_label)}">${s.valuation_label||'–'}</span></td>
+      <td class="r"><span class="up ${uc}">${us}</span></td>
+    </tr>`
+  }).join('');
+}
+
+function pick(ticker){
+  sel=ticker;draw();
+  const s=all.find(x=>x.ticker===ticker);
+  if(s){side(s);if(prices[ticker])updateSidePrice(prices[ticker]);}
+}
+
+function side(s){
+  const c=sc(s.score_total);
+  const up=s.upside_percent;
+  const uc=up>0?'#22C55E':'#EF4444';
+
+  const frows=[
+    ['Quality / Moat',s.score_quality],
+    ['Financial Strength',s.score_financial],
+    ['Future Potential',s.score_future],
+    ['Management',s.score_management],
+    ['Risk Profile',s.score_risk],
+    ['Valuation',s.score_valuation],
+  ].map(([l,v])=>{const n=v??0;const fc=sc(n/20*100);return`<div class="fbr"><span class="fbl">${l}</span><div class="fbt"><div class="fbf" style="width:${n/20*100}%;background:${fc}"></div></div><span class="fbn" style="color:${fc}">${n}/20</span></div>`}).join('');
+
+  document.getElementById('rp').innerHTML=`
+    <div class="sh">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div>
+          <div class="st-tick">${s.ticker}</div>
+          <div class="st-name">${s.company_name}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:3px">LIVE PRICE</div>
+          <div id="side-live-price">
+            ${prices[s.ticker]?`<div class="live-price-big">$${prices[s.ticker].price}</div><div class="live-chg-big ${parseFloat(prices[s.ticker].changePercent)>=0?'pos':'neg'}">${parseFloat(prices[s.ticker].changePercent)>=0?'▲':'▼'} ${Math.abs(parseFloat(prices[s.ticker].changePercent)).toFixed(2)}%</div>`:'<span class="price-loading">loading...</span>'}
+          </div>
+        </div>
+      </div>
+      <div class="sc-row">
+        <div><div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:3px">SIGNAL SCORE</div>
+          <div class="sc-big" style="color:${c}">${s.score_total}<span style="font-size:14px;color:var(--t3)">/100</span></div></div>
+        <div class="sc-badges">
+          <span class="bdg ${bc(s.pass_fail)}">${s.pass_fail}</span>
+          <span class="vbdg ${vc(s.valuation_label)}">${s.valuation_label||'–'}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ss"><div class="ss-t">Filter breakdown</div>${frows}</div>
+
+    <div class="ss">
+      <div class="ss-t">AI analysis</div>
+      <div class="aic"><div class="aih"><span class="ail">Moat</span><span class="aip">${s.ai_moat_score??'–'}/10</span></div><div class="ait">${s.ai_moat_reason||'Run scanner to generate.'}</div></div>
+      <div class="aic"><div class="aih"><span class="ail">Future</span><span class="aip">${s.ai_future_score??'–'}/10</span></div><div class="ait">${s.ai_future_reason||'–'}</div></div>
+      <div class="aic"><div class="aih"><span class="ail">Management</span><span class="aip">${s.ai_management_score??'–'}/10</span></div><div class="ait">${s.ai_management_reason||'–'}</div></div>
+      ${s.ai_verdict?`<div style="margin-top:8px;padding:10px;background:rgba(59,130,246,.06);border-left:2px solid var(--bl);border-radius:0 4px 4px 0"><div style="font-size:11px;color:var(--t2);line-height:1.5">${s.ai_verdict}</div></div>`:''}
+      ${s.ai_key_risk?`<div style="margin-top:8px;padding:10px;background:rgba(239,68,68,.06);border-left:2px solid #EF4444;border-radius:0 4px 4px 0"><div style="font-family:var(--mono);font-size:10px;color:#EF4444;margin-bottom:3px">KEY RISK</div><div style="font-size:11px;color:var(--t2);line-height:1.5">${s.ai_key_risk}</div></div>`:''}
+    </div>
+
+    <div class="ss">
+      <div class="ss-t">Valuation</div>
+      <div class="vh"><div class="vhn" style="color:${uc}">${up>0?'+':''}${up??'–'}%</div><div class="vhl">upside vs intrinsic value</div></div>
+      <div class="vg">
+        <div class="vc"><div class="vcc">Intrinsic Value</div><div class="vcv">$${s.intrinsic_value??'–'}</div></div>
+        <div class="vc"><div class="vcc">Graham Number</div><div class="vcv">$${s.graham_number??'–'}</div></div>
+        <div class="vc"><div class="vcc">Current PE</div><div class="vcv">${s.pe_ratio??'–'}x</div></div>
+        <div class="vc"><div class="vcc">Industry PE</div><div class="vcv">${s.industry_pe??'–'}x</div></div>
+      </div>
+    </div>
+
+    <div class="cw">
+      <div class="ct">Score vs universe</div>
+      <div class="cc"><canvas id="ch" role="img" aria-label="Score comparison bar chart">${s.ticker} scores ${s.score_total}/100</canvas></div>
+    </div>
+
+    <div class="cw">
+      <div class="ct">Score history</div>
+      <div class="cc"><canvas id="ch2" role="img" aria-label="Score history line chart for ${s.ticker}">Score history loading...</canvas></div>
+      <div id="history-status" style="font-family:var(--mono);font-size:10px;color:var(--t3);text-align:center;margin-top:6px">Loading history...</div>
+    </div>
+
+    <div class="ss">
+      <div class="ss-t">Latest news</div>
+      <div id="news-panel"><div style="font-family:var(--mono);font-size:10px;color:var(--t3)">Loading...</div></div>
+    </div>`;
+
+  if(chart){chart.destroy();chart=null}
+  const sorted=[...all].sort((a,b)=>b.score_total-a.score_total);
+  chart=new Chart(document.getElementById('ch'),{
+    type:'bar',
+    data:{
+      labels:sorted.map(x=>x.ticker),
+      datasets:[{data:sorted.map(x=>x.score_total),backgroundColor:sorted.map(x=>x.ticker===s.ticker?'#3B82F6':'#2A2A2A'),borderColor:sorted.map(x=>x.ticker===s.ticker?'#3B82F6':'#333333'),borderWidth:1,borderRadius:2}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>i[0].label,label:i=>`${i.raw}/100`}}},
+      scales:{
+        x:{ticks:{font:{size:9,family:'JetBrains Mono'},color:'#555555',maxRotation:60},grid:{display:false}},
+        y:{min:0,max:100,ticks:{font:{size:9},color:'#555555',stepSize:25},grid:{color:'#1A1A1A'}}
+      }
+    }
+  });
+
+  loadHistory(s.ticker);
+  loadNews(s.ticker);
+}
+
+async function loadNews(ticker){
+  const el=document.getElementById('news-panel');
+  if(!el)return;
+
+  try{
+    const r=await fetch(`http://localhost:3001/news/${ticker}`);
+    const d=await r.json();
+
+    if(!d.news?.length){
+      el.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--t3)">No news found</div>';
+      return;
+    }
+
+    el.innerHTML=d.news.map(item=>{
+      const ts=item.time?new Date(item.time*1000):null;
+      const timeStr=ts?`${ts.getDate()}/${ts.getMonth()+1} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`:'–';
+      return`<div class="news-item">
+        <a class="news-title" href="${item.url}" target="_blank">${item.title}</a>
+        <div class="news-meta">
+          <span class="news-source">${item.source||'–'}</span>
+          <span>·</span>
+          <span class="news-time">${timeStr}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+  }catch(e){
+    if(el)el.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--t3)">News unavailable</div>';
+  }
+}
+
+let histChart=null;
+
+async function loadHistory(ticker){
+  const statusEl=document.getElementById('history-status');
+  const ctx=document.getElementById('ch2');
+  if(!ctx)return;
+
+  if(histChart){histChart.destroy();histChart=null}
+
+  const{data,error}=await db
+    .from('score_history')
+    .select('score_total,score_quality,score_financial,score_future,score_management,score_risk,score_valuation,scanned_at')
+    .eq('ticker',ticker)
+    .order('scanned_at',{ascending:true})
+    .limit(30);
+
+  if(error||!data?.length){
+    if(statusEl)statusEl.textContent='No history yet – run scanner_v3.js to start tracking';
+    ctx.style.display='none';
+    return;
+  }
+
+  if(statusEl)statusEl.textContent=`${data.length} scan${data.length>1?'s':''} recorded`;
+  ctx.style.display='block';
+
+  const labels=data.map(d=>{
+    const dt=new Date(d.scanned_at);
+    return`${dt.getDate()}/${dt.getMonth()+1}`;
+  });
+
+  histChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {
+          label:'Total',
+          data:data.map(d=>d.score_total),
+          borderColor:'#3B82F6',
+          backgroundColor:'rgba(59,130,246,0.08)',
+          borderWidth:2,
+          pointRadius:3,
+          pointBackgroundColor:'#3B82F6',
+          fill:true,
+          tension:0.3
+        },
+        {
+          label:'Quality',
+          data:data.map(d=>d.score_quality),
+          borderColor:'#22C55E',
+          backgroundColor:'transparent',
+          borderWidth:1,
+          pointRadius:2,
+          borderDash:[3,3],
+          tension:0.3
+        },
+        {
+          label:'Financial',
+          data:data.map(d=>d.score_financial),
+          borderColor:'#EAB308',
+          backgroundColor:'transparent',
+          borderWidth:1,
+          pointRadius:2,
+          borderDash:[3,3],
+          tension:0.3
+        },
+        {
+          label:'Risk',
+          data:data.map(d=>d.score_risk),
+          borderColor:'#EF4444',
+          backgroundColor:'transparent',
+          borderWidth:1,
+          pointRadius:2,
+          borderDash:[3,3],
+          tension:0.3
+        }
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{
+          display:true,
+          position:'top',
+          labels:{
+            color:'#555555',
+            font:{size:9,family:'JetBrains Mono'},
+            boxWidth:8,
+            padding:8
+          }
+        },
+        tooltip:{
+          callbacks:{
+            label:i=>`${i.dataset.label}: ${i.raw}/20${i.datasetIndex===0?'0':''}`
+          }
+        }
+      },
+      scales:{
+        x:{ticks:{font:{size:9,family:'JetBrains Mono'},color:'#555555'},grid:{color:'#1A1A1A'}},
+        y:{min:0,max:100,ticks:{font:{size:9},color:'#555555',stepSize:20},grid:{color:'#1A1A1A'}}
+      }
+    }
+  });
+}
+
+function tick(){
+  document.getElementById('ts').textContent=new Date().toLocaleTimeString('en-AU',{hour12:false});
+}
+setInterval(tick,1000);tick();
+
+function refreshPriceCells(){
+  Object.keys(prices).forEach(t=>updatePriceCell(t,prices[t]));
+}
+
+const origDraw=draw;
+window.draw=function(){origDraw();setTimeout(refreshPriceCells,50);}
+
+setInterval(()=>{
+  if(all.length)fetchAllPrices(all.map(s=>s.ticker));
+},60000);
+
+load();
+</script>
+</body>
+</html>
