@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ override: false });
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 
