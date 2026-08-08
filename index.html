@@ -26,12 +26,13 @@
   --mono:'JetBrains Mono',monospace;
   --sans:'Inter',sans-serif;
 }
-body{background:var(--bg);color:var(--t1);font-family:var(--sans);font-size:13px;min-height:100vh}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);font-size:13px}
 
 header{
   height:44px;background:var(--s1);border-bottom:1px solid var(--b1);
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;position:sticky;top:0;z-index:50
+  padding:0 20px;z-index:50;flex-shrink:0;
 }
 .hlogo{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--t1);letter-spacing:.08em}
 .hlogo span{color:var(--t3);margin-left:8px;font-size:11px;font-weight:400}
@@ -39,9 +40,10 @@ header{
 .hdot{width:5px;height:5px;border-radius:50%;background:var(--gr);margin-right:4px;animation:p 2s infinite;display:inline-block}
 @keyframes p{0%,100%{opacity:1}50%{opacity:.3}}
 
-.wrap{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 44px)}
-.left{border-right:1px solid var(--b1)}
-.right{background:var(--s1);position:sticky;top:44px;height:calc(100vh - 44px);overflow-y:auto}
+.outer{display:flex;flex-direction:column;height:100vh}
+.wrap{display:grid;grid-template-columns:1fr 320px;flex:1;overflow:hidden}
+.left{border-right:1px solid var(--b1);overflow-y:auto;display:flex;flex-direction:column}
+.right{background:var(--s1);overflow-y:auto}
 
 .kpis{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--b1)}
 .kpi{padding:12px 16px;border-right:1px solid var(--b1)}
@@ -63,13 +65,15 @@ header{
 .sel{margin-left:auto;background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:5px 8px;font-size:11px;color:var(--t2);font-family:var(--sans);outline:none;cursor:pointer}
 
 /* Mobile Detail Panel */
-.mobile-back{display:none;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--b1);background:var(--s1);cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--bl)}
+.mobile-back{display:none;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--b1);background:var(--s1);cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--bl);position:sticky;top:0;z-index:10}
 .mobile-back:active{background:var(--s2)}
 
 /* ── Mobile Responsive ── */
 @media(max-width:768px){
-  .wrap{grid-template-columns:1fr}
-  .left{border-right:none}
+  html,body{overflow:hidden}
+  .outer{height:100vh;display:flex;flex-direction:column}
+  .wrap{grid-template-columns:1fr;flex:1;overflow:hidden}
+  .left{overflow-y:auto}
   .right{
     position:fixed;top:0;left:0;right:0;bottom:0;
     z-index:200;height:100vh;width:100vw;
@@ -87,12 +91,10 @@ header{
   .sel{display:none}
   th.hide-mobile{display:none}
   td.hide-mobile{display:none}
-  thead{top:0}
   td{padding:10px 10px}
   .hlogo span{display:none}
   .sc-row{flex-direction:column;align-items:flex-start;gap:8px}
-  .sc-badges{flex-direction:row;align-items:center}
-  .sh>div:first-child{flex-direction:column;gap:8px}
+  .sc-badges{flex-direction:row;align-items:center;gap:6px}
   .vg{grid-template-columns:1fr 1fr}
   .ss{padding:12px 14px}
   .sh{padding:12px 14px}
@@ -100,7 +102,7 @@ header{
 }
 
 table{width:100%;border-collapse:collapse}
-thead{background:var(--s2);position:sticky;top:85px;z-index:10}
+thead{background:var(--s2);position:sticky;top:0;z-index:10}
 th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);padding:9px 14px;text-align:left;border-bottom:1px solid var(--b1);font-weight:400;white-space:nowrap}
 th.r{text-align:right}
 tbody tr{border-bottom:1px solid var(--b1);cursor:pointer;transition:background .08s}
@@ -196,6 +198,7 @@ td.r{text-align:right}
 </style>
 </head>
 <body>
+<div class="outer">
 
 <header>
   <div class="hlogo">SIGNAL<span>stock screener</span></div>
@@ -633,5 +636,6 @@ setInterval(()=>{
 
 load();
 </script>
+</div>
 </body>
 </html>
