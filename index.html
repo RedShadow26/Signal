@@ -298,3 +298,149 @@ function closeDetail(){
   document.getElementById('rp').classList.remove('open');
   draw();
 }
+function side(s){
+  const c=sc(s.score_total);
+  const up=s.upside_percent;
+  const uc=up>0?'#22C55E':'#EF4444';
+
+  const frows=[
+    ['Quality / Moat',s.score_quality],
+    ['Financial Strength',s.score_financial],
+    ['Future Potential',s.score_future],
+    ['Management',s.score_management],
+    ['Risk Profile',s.score_risk],
+    ['Valuation',s.score_valuation],
+  ].map(([l,v])=>{const n=v??0;const fc=sc(n/20*100);return`<div class="fbr"><span class="fbl">${l}</span><div class="fbt"><div class="fbf" style="width:${n/20*100}%;background:${fc}"></div></div><span class="fbn" style="color:${fc}">${n}/20</span></div>`}).join('');
+
+  document.getElementById('rp').innerHTML=`
+    <div class="mobile-back" onclick="closeDetail()">← Back to list</div>
+    <div class="sh">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <div class="st-tick">${s.ticker}</div>
+          <div class="st-name">${s.company_name}</div>
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:3px">LIVE PRICE</div>
+          <div id="side-live-price">
+            ${prices[s.ticker]?`<div class="live-price-big">$${prices[s.ticker].price}</div><div class="live-chg-big ${parseFloat(prices[s.ticker].changePercent)>=0?'pos':'neg'}">${parseFloat(prices[s.ticker].changePercent)>=0?'▲':'▼'} ${Math.abs(parseFloat(prices[s.ticker].changePercent)).toFixed(2)}%</div>`:'<span class="price-loading">loading...</span>'}
+          </div>
+        </div>
+      </div>
+      <div class="sc-row">
+        <div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:3px">SIGNAL SCORE</div>
+          <div class="sc-big" style="color:${c}">${s.score_total}<span style="font-size:14px;color:var(--t3)">/100</span></div>
+        </div>
+        <div class="sc-badges">
+          <span class="bdg ${bc(s.pass_fail)}">${s.pass_fail}</span>
+          <span class="vbdg ${vc(s.valuation_label)}">${s.valuation_label||'–'}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ss"><div class="ss-t">Filter breakdown</div>${frows}</div>
+
+    <div class="ss">
+      <div class="ss-t">AI analysis</div>
+      <div class="aic"><div class="aih"><span class="ail">Moat</span><span class="aip">${s.ai_moat_score??'–'}/10</span></div><div class="ait">${s.ai_moat_reason||'Run scanner to generate.'}</div></div>
+      <div class="aic"><div class="aih"><span class="ail">Future</span><span class="aip">${s.ai_future_score??'–'}/10</span></div><div class="ait">${s.ai_future_reason||'–'}</div></div>
+      <div class="aic"><div class="aih"><span class="ail">Management</span><span class="aip">${s.ai_management_score??'–'}/10</span></div><div class="ait">${s.ai_management_reason||'–'}</div></div>
+      ${s.ai_verdict?`<div style="margin-top:8px;padding:10px;background:rgba(59,130,246,.06);border-left:2px solid var(--bl);border-radius:0 4px 4px 0"><div style="font-size:11px;color:var(--t2);line-height:1.5">${s.ai_verdict}</div></div>`:''}
+      ${s.ai_key_risk?`<div style="margin-top:8px;padding:10px;background:rgba(239,68,68,.06);border-left:2px solid #EF4444;border-radius:0 4px 4px 0"><div style="font-family:var(--mono);font-size:10px;color:#EF4444;margin-bottom:3px">KEY RISK</div><div style="font-size:11px;color:var(--t2);line-height:1.5">${s.ai_key_risk}</div></div>`:''}
+    </div>
+
+    <div class="ss">
+      <div class="ss-t">Valuation</div>
+      <div class="vh"><div class="vhn" style="color:${uc}">${up>0?'+':''}${up??'–'}%</div><div class="vhl">upside vs intrinsic value</div></div>
+      <div class="vg">
+        <div class="vc"><div class="vcc">Intrinsic Value</div><div class="vcv">$${s.intrinsic_value??'–'}</div></div>
+        <div class="vc"><div class="vcc">Graham Number</div><div class="vcv">$${s.graham_number??'–'}</div></div>
+        <div class="vc"><div class="vcc">Current PE</div><div class="vcv">${s.pe_ratio??'–'}x</div></div>
+        <div class="vc"><div class="vcc">Industry PE</div><div class="vcv">${s.industry_pe??'–'}x</div></div>
+      </div>
+    </div>
+
+    <div class="cw">
+      <div class="ct">Score vs universe</div>
+      <div class="cc"><canvas id="ch" role="img" aria-label="Score comparison bar chart">${s.ticker} scores ${s.score_total}/100</canvas></div>
+    </div>
+
+    <div class="cw">
+      <div class="ct">Score history</div>
+      <div class="cc"><canvas id="ch2" role="img" aria-label="Score history line chart for ${s.ticker}">Score history loading...</canvas></div>
+      <div id="history-status" style="font-family:var(--mono);font-size:10px;color:var(--t3);text-align:center;margin-top:6px">Loading history...</div>
+    </div>
+
+    <div class="ss">
+      <div class="ss-t">Latest news</div>
+      <div id="news-panel"><div style="font-family:var(--mono);font-size:10px;color:var(--t3)">Loading...</div></div>
+    </div>`;
+
+  if(chart){chart.destroy();chart=null}
+  const sorted=[...all].sort((a,b)=>b.score_total-a.score_total);
+  chart=new Chart(document.getElementById('ch'),{
+    type:'bar',
+    data:{labels:sorted.map(x=>x.ticker),datasets:[{data:sorted.map(x=>x.score_total),backgroundColor:sorted.map(x=>x.ticker===s.ticker?'#3B82F6':'#2A2A2A'),borderColor:sorted.map(x=>x.ticker===s.ticker?'#3B82F6':'#333333'),borderWidth:1,borderRadius:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>i[0].label,label:i=>`${i.raw}/100`}}},scales:{x:{ticks:{font:{size:9,family:'JetBrains Mono'},color:'#555555',maxRotation:60},grid:{display:false}},y:{min:0,max:100,ticks:{font:{size:9},color:'#555555',stepSize:25},grid:{color:'#1A1A1A'}}}}
+  });
+
+  loadHistory(s.ticker);
+  loadNews(s.ticker);
+}
+
+async function loadNews(ticker){
+  const el=document.getElementById('news-panel');
+  if(!el)return;
+  try{
+    const r=await fetch(`https://signal-production-d8c7.up.railway.app/news/${ticker}`);
+    const d=await r.json();
+    if(!d.news?.length){el.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--t3)">No news found</div>';return;}
+    el.innerHTML=d.news.map(item=>{
+      const ts=item.time?new Date(item.time*1000):null;
+      const timeStr=ts?`${ts.getDate()}/${ts.getMonth()+1} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`:'–';
+      return`<div class="news-item"><a class="news-title" href="${item.url}" target="_blank">${item.title}</a><div class="news-meta"><span class="news-source">${item.source||'–'}</span><span>·</span><span class="news-time">${timeStr}</span></div></div>`;
+    }).join('');
+  }catch(e){if(el)el.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--t3)">News unavailable</div>';}
+}
+
+let histChart=null;
+
+async function loadHistory(ticker){
+  const statusEl=document.getElementById('history-status');
+  const ctx=document.getElementById('ch2');
+  if(!ctx)return;
+  if(histChart){histChart.destroy();histChart=null}
+  const{data,error}=await db.from('score_history').select('score_total,score_quality,score_financial,score_future,score_management,score_risk,score_valuation,scanned_at').eq('ticker',ticker).order('scanned_at',{ascending:true}).limit(30);
+  if(error||!data?.length){
+    if(statusEl)statusEl.textContent='No history yet – run scanner to start tracking';
+    ctx.style.display='none';return;
+  }
+  if(statusEl)statusEl.textContent=`${data.length} scan${data.length>1?'s':''} recorded`;
+  ctx.style.display='block';
+  const labels=data.map(d=>{const dt=new Date(d.scanned_at);return`${dt.getDate()}/${dt.getMonth()+1}`;});
+  histChart=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Total',data:data.map(d=>d.score_total),borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,0.08)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#3B82F6',fill:true,tension:0.3},
+      {label:'Quality',data:data.map(d=>d.score_quality),borderColor:'#22C55E',backgroundColor:'transparent',borderWidth:1,pointRadius:2,borderDash:[3,3],tension:0.3},
+      {label:'Financial',data:data.map(d=>d.score_financial),borderColor:'#EAB308',backgroundColor:'transparent',borderWidth:1,pointRadius:2,borderDash:[3,3],tension:0.3},
+      {label:'Risk',data:data.map(d=>d.score_risk),borderColor:'#EF4444',backgroundColor:'transparent',borderWidth:1,pointRadius:2,borderDash:[3,3],tension:0.3}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,position:'top',labels:{color:'#555555',font:{size:9,family:'JetBrains Mono'},boxWidth:8,padding:8}},tooltip:{callbacks:{label:i=>`${i.dataset.label}: ${i.raw}/20${i.datasetIndex===0?'0':''}`}}},scales:{x:{ticks:{font:{size:9,family:'JetBrains Mono'},color:'#555555'},grid:{color:'#1A1A1A'}},y:{min:0,max:100,ticks:{font:{size:9},color:'#555555',stepSize:20},grid:{color:'#1A1A1A'}}}}
+  });
+}
+
+function tick(){document.getElementById('ts').textContent=new Date().toLocaleTimeString('en-AU',{hour12:false});}
+setInterval(tick,1000);tick();
+
+function refreshPriceCells(){Object.keys(prices).forEach(t=>updatePriceCell(t,prices[t]));}
+const origDraw=draw;
+window.draw=function(){origDraw();setTimeout(refreshPriceCells,50);}
+setInterval(()=>{if(all.length)fetchAllPrices(all.map(s=>s.ticker));},60000);
+
+load();
+</script>
+</div>
+</body>
+</html>
